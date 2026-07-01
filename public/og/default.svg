@@ -1,0 +1,14 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="630" fill="#0B1120"/>
+  <circle cx="1010" cy="80" r="260" fill="#2563EB" fill-opacity="0.25"/>
+  <circle cx="120" cy="560" r="220" fill="#10B981" fill-opacity="0.18"/>
+  <rect x="84" y="86" width="1032" height="458" rx="48" fill="#0F172A" stroke="#1E293B" stroke-width="2"/>
+  <rect x="132" y="134" width="72" height="72" rx="20" fill="#2563EB"/>
+  <text x="168" y="181" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="30" font-weight="900" fill="white">LG</text>
+  <text x="232" y="178" font-family="Inter, Arial, sans-serif" font-size="36" font-weight="900" fill="white">Lahbabi<tspan fill="#2563EB">Guide</tspan></text>
+  <text x="132" y="285" font-family="Inter, Arial, sans-serif" font-size="62" font-weight="900" fill="white">Free Developer Tools</text>
+  <text x="132" y="358" font-family="Inter, Arial, sans-serif" font-size="62" font-weight="900" fill="#60A5FA">Startup Credits</text>
+  <text x="132" y="424" font-family="Inter, Arial, sans-serif" font-size="28" font-weight="600" fill="#CBD5E1">Verified resources, platform reviews, and privacy-first utilities for modern builders.</text>
+  <rect x="132" y="468" width="238" height="46" rx="23" fill="#2563EB"/>
+  <text x="251" y="499" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="16" font-weight="800" fill="white">lahbabiguide.com</text>
+</svg>

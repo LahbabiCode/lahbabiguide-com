@@ -1,0 +1,8 @@
+{
+  "name": "LahbabiGuide",
+  "description": "Directory of free developer tools, startup credits, and utility platforms.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

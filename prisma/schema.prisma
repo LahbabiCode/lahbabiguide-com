@@ -1,0 +1,453 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum ContentStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+// Admins & Roles
+model User {
+  id            String         @id @default(uuid())
+  email         String         @unique
+  emailVerified DateTime?
+  image         String?
+  name          String?
+  password      String?        // For credentials login
+  role          String         @default("user") // admin, editor, user
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  accounts      Account[]
+  sessions      Session[]
+  favorites     Favorite[]
+  ratings       Rating[]
+  activityLogs  ActivityLog[]
+}
+
+model Account {
+  id                 String  @id @default(uuid())
+  userId             String
+  type               String
+  provider           String
+  providerAccountId  String
+  refresh_token      String?  @db.Text
+  access_token       String?  @db.Text
+  expires_at         Int?
+  token_type         String?
+  scope              String?
+  id_token           String?  @db.Text
+  session_state      String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(uuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model AdminAccount {
+  id        String   @id @default(uuid())
+  username  String   @unique
+  password  String   // hashed password
+  roleId    String
+  role      Role     @relation(fields: [roleId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Role {
+  id          String       @id @default(uuid())
+  name        String       @unique
+  permissions Permission[]
+  admins      AdminAccount[]
+}
+
+model Permission {
+  id      String @id @default(uuid())
+  action  String // e.g., "create:tool", "publish:credit"
+  roleId  String
+  role    Role   @relation(fields: [roleId], references: [id], onDelete: Cascade)
+}
+
+// Ahosti Autonomous Engine Module
+model Project {
+  id          String            @id @default(uuid())
+  name        String
+  description String?
+  runs        AutonomousRun[]
+  artifacts   ProjectArtifact[]
+  files       GeneratedFile[]
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+}
+
+model GeneratedFile {
+  id        String   @id @default(uuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  path      String   // e.g., "/app/page.tsx"
+  content   String?  @db.Text
+  status    String   @default("pending") // pending, generated, fallback-generated, incomplete, failed, regenerated, validated
+  error     String?  @db.Text
+  type      String   // blueprint, framework, ide, document, agent, taskboard, message
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+
+  @@unique([projectId, path])
+}
+
+model AutonomousRun {
+  id           String        @id @default(uuid())
+  projectId    String
+  project      Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  status       String        @default("PENDING") // PENDING, RUNNING, COMPLETED, FAILED
+  steps        RunStep[]
+  checkpoints  Checkpoint[]
+  reports      RunReport[]
+  startedAt    DateTime?
+  completedAt  DateTime?
+  createdAt    DateTime      @default(now())
+}
+
+model RunStep {
+  id        String        @id @default(uuid())
+  runId     String
+  run       AutonomousRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  name      String
+  input     Json?
+  output    Json?
+  status    String        @default("PENDING")
+  createdAt DateTime      @default(now())
+}
+
+model ProjectArtifact {
+  id        String   @id @default(uuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  type      String   // e.g., "AI_OUTPUT", "CODE_SNIPPET"
+  content   String
+  metadata  Json?
+  createdAt DateTime @default(now())
+}
+
+model Checkpoint {
+  id        String        @id @default(uuid())
+  runId     String
+  run       AutonomousRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  state     Json
+  createdAt DateTime      @default(now())
+}
+
+model RunReport {
+  id        String        @id @default(uuid())
+  runId     String
+  run       AutonomousRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  content   String        @db.Text
+  analysis  Json?
+  createdAt DateTime      @default(now())
+}
+
+// 1. Free Internal Developer Tools Module
+model ToolCategory {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  slug        String   @unique
+  description String?
+  order       Int      @default(0)
+  tools       Tool[]
+}
+
+model Tool {
+  id               String        @id @default(uuid())
+  name             String
+  slug             String        @unique
+  description      String
+  componentKey     String?       // key matching the client-side module, e.g. "json-formatter"
+  status           ContentStatus @default(DRAFT)
+  order            Int           @default(0)
+  categoryId       String
+  category         ToolCategory  @relation(fields: [categoryId], references: [id])
+  tags             String[]      // Custom array of tags (Postgres-native string array)
+  seoTitle         String?
+  seoDescription   String?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+}
+
+// 2. Developer Platforms Directory Module
+model DirectoryCategory {
+  id          String          @id @default(uuid())
+  name        String          @unique
+  slug        String          @unique
+  description String?
+  order       Int             @default(0)
+  items       DirectoryItem[]
+}
+
+model DirectoryItem {
+  id               String            @id @default(uuid())
+  name             String
+  slug             String            @unique
+  description      String            // Short description
+  fullDescription  String            @default("") // In-depth description
+  features         String[]
+  pros             String[]          @default([])
+  cons             String[]          @default([])
+  alternatives     String[]          @default([])
+  pricingModel     String            // Free, Freemium, Paid, Open Source
+  hasFreePlan      Boolean           @default(false)
+  officialUrl      String
+  logoUrl          String?
+  status           ContentStatus     @default(DRAFT)
+  order            Int               @default(0)
+  seoTitle         String?
+  seoDescription   String?
+  faqJson          Json?
+  categoryId       String
+  category         DirectoryCategory @relation(fields: [categoryId], references: [id])
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+}
+
+// 3. Startup Credits Directory Module
+model CreditCategory {
+  id          String          @id @default(uuid())
+  name        String          @unique
+  slug        String          @unique
+  description String?
+  order       Int             @default(0)
+  credits     StartupCredit[]
+}
+
+model StartupCredit {
+  id               String         @id @default(uuid())
+  name             String
+  slug             String         @unique
+  company          String
+  logo             String?
+  creditValue      String         // e.g. "$120,000", "$1,000"
+  shortDescription String
+  fullDescription  String
+  eligibility      String         // eligibility section markdown
+  claimSteps       String         // claim steps markdown
+  officialUrl      String
+  countries        String[]       // Allowed countries / Worldwide
+  tags             String[]       // tags
+  status           ContentStatus  @default(DRAFT)
+  order            Int            @default(0)
+  seoTitle         String?
+  seoDescription   String?
+  faqJson          Json?          // FAQ schema questions/responses in json
+  categoryId       String
+  category         CreditCategory @relation(fields: [categoryId], references: [id])
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+}
+
+// 4. Blog and Guides Modules
+model BlogCategory {
+  id        String     @id @default(uuid())
+  name      String     @unique
+  slug      String     @unique
+  posts     BlogPost[]
+}
+
+model BlogPost {
+  id             String        @id @default(uuid())
+  title          String
+  slug           String        @unique
+  content        String
+  featuredImage  String?
+  status         ContentStatus @default(DRAFT)
+  categoryId     String
+  category       BlogCategory  @relation(fields: [categoryId], references: [id])
+  tags           String[]
+  seoTitle       String?
+  seoDescription String?
+  faqJson        Json?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+}
+
+model Guide {
+  id             String        @id @default(uuid())
+  title          String
+  slug           String        @unique
+  content        String
+  status         ContentStatus @default(DRAFT)
+  seoTitle       String?
+  seoDescription String?
+  faqJson        Json?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+}
+
+model Comparison {
+  id             String        @id @default(uuid())
+  title          String
+  slug           String        @unique
+  content        String        // Detailed comparison markdown
+  tags           String[]
+  status         ContentStatus @default(DRAFT)
+  seoTitle       String?
+  seoDescription String?
+  faqJson        Json?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+}
+
+// AdSense Management
+model AdPlacement {
+  id          String   @id @default(uuid())
+  key         String   @unique // e.g. "tool-list-feed", "sidebar-bottom"
+  name        String
+  slotId      String
+  format      String   @default("auto") // auto, fluid, rectangle
+  layoutKey   String?
+  enabled     Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// SEO & CMS Configs
+model SEOSetting {
+  id           String   @id @default(uuid())
+  pagePath     String   @unique // e.g., "/about", "/credits"
+  title        String
+  description  String
+  schemaMarkup Json?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model MediaFile {
+  id          String   @id @default(uuid())
+  filename    String
+  url         String
+  mimeType    String
+  sizeBytes   Int
+  altText     String?
+  title       String?
+  usageTarget String?
+  createdAt   DateTime @default(now())
+}
+
+model Page {
+  id        String        @id @default(uuid())
+  title     String
+  slug      String        @unique
+  content   String
+  status    ContentStatus @default(DRAFT)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+}
+
+model NavigationItem {
+  id        String   @id @default(uuid())
+  label     String
+  url       String
+  order     Int      @default(0)
+  parentKey String?
+}
+
+model Favorite {
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  targetType String   // e.g., "tool", "credit"
+  targetId   String
+  createdAt  DateTime @default(now())
+}
+
+model Rating {
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  targetType String   // e.g., "tool"
+  targetId   String
+  score      Int      // 1 to 5
+  createdAt  DateTime @default(now())
+}
+
+model Setting {
+  id    String @id @default(uuid())
+  key   String @unique
+  value String
+}
+
+model ActivityLog {
+  id        String   @id @default(uuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  action    String
+  details   String?
+  ipAddress String?
+  createdAt DateTime @default(now())
+}
+
+// Newsletter subscribers from /api/newsletter and NewsletterForm embeds.
+model NewsletterSubscriber {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String?
+  source    String   @default("site")
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
+// Sponsor submissions from /sponsor and /api/sponsor.
+model SponsorRequest {
+  id          String   @id @default(uuid())
+  company     String
+  contactName String
+  email       String
+  website     String?
+  type        String   // tool-listing | credit-listing | featured | newsletter-mention | other
+  budget      String   // under-100 | 100-500 | 500-2000 | 2000+
+  notes       String?
+  status      String   @default("new") // new | reviewing | accepted | declined
+  createdAt   DateTime @default(now())
+}
+
+// Product leads from /api/products/lead (free with email + buy intent).
+model ProductLead {
+  id        String   @id @default(uuid())
+  product   String
+  name      String?
+  email     String
+  mode      String   // email | buy
+  status    String   @default("new") // new | sent | fulfilled
+  createdAt DateTime @default(now())
+}
+
+// Money page tracking for /api/admin/revenue-score dashboard.
+model PageRevenueSnapshot {
+  id        String   @id @default(uuid())
+  url       String   @unique
+  pageType  String
+  score     Int
+  cpcBand   String
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+}

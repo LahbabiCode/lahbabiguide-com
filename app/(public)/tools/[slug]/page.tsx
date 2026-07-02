@@ -7,6 +7,7 @@ import Link from "next/link";
 import { ArrowLeft, Wrench } from "lucide-react";
 import { FavoriteButton } from "@/components/ui/favorite-button";
 import { RatingStars } from "@/components/ui/rating-stars";
+import { ToolRunner } from "@/components/tools/ToolRunner";
 
 interface ToolProps {
   params: Promise<{ slug: string }>;
@@ -111,18 +112,8 @@ export default async function ToolDetailPage({ params }: ToolProps) {
                    <AdPlacementRenderer placementKey="header-banner" />
                 </div>
                 
-                {/* Mock interactive area */}
-                <div className="bg-slate-50 dark:bg-slate-950/20 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-3xl p-12 text-center text-slate-400 flex flex-col items-center justify-center space-y-4">
-                   <div className="w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-900 flex items-center justify-center">
-                      <Wrench className="h-8 w-8 text-blue-600" />
-                   </div>
-                   <p className="text-sm font-black uppercase tracking-widest text-slate-300 dark:text-slate-700">
-                      Interaction Engine Initializing...
-                   </p>
-                   <p className="text-xs max-w-xs mx-auto">
-                     The {tool.name} interactive logic for component <strong>{tool.componentKey}</strong> is loading locally.
-                   </p>
-                </div>
+                {/* Interactive tool */}
+                <ToolRunner componentKey={tool.componentKey} />
 
                 <div className="mt-12">
                    <AdPlacementRenderer placementKey="content-middle" />

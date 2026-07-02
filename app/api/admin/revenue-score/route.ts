@@ -11,6 +11,7 @@ import {
   getCreditClusterPages,
 } from "@/lib/db/queries";
 import { getRevenueProfile } from "@/lib/monetization/revenueProfiles";
+import { requireAdmin } from "@/lib/auth-guard";
 
 export const dynamic = "force-dynamic";
 
@@ -22,6 +23,11 @@ function scorePage(pageType: keyof ReturnType<typeof getRevenueProfile> | string
 }
 
 export async function GET() {
+  try {
+    await requireAdmin();
+  } catch {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
   const [tools, credits, platforms, posts, guides, comps, best, pricing, clusters] = await Promise.all([
     getTools(),
     getCredits(),

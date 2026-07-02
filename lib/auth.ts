@@ -1,10 +1,17 @@
 import NextAuth from "next-auth";
-import { PrismaAdapter } from "@auth/prisma-adapter";
-import { prisma } from "@/lib/db/prisma";
 import Credentials from "next-auth/providers/credentials";
 
+/**
+ * Admin authentication.
+ *
+ * - Credentials come from environment variables (ADMIN_USERNAME / ADMIN_PASSWORD)
+ *   set in the deployment platform — never hardcoded.
+ * - JWT session strategy: required for the Credentials provider (database
+ *   sessions are not created for credentials sign-ins) and keeps this module
+ *   free of Prisma so it can run in middleware (edge runtime).
+ */
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  adapter: PrismaAdapter(prisma),
+  trustHost: true,
   providers: [
     Credentials({
       name: "Admin Login",
@@ -13,42 +20,45 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        // This is a simple authorize function. 
-        // In a real app, you would verify the password with bcrypt.
-        if (credentials?.username === "admin" && credentials?.password === "admin") {
-          const user = await prisma.user.findUnique({
-            where: { email: "admin@lahbabiguide.com" },
-          });
-          
-          if (!user) {
-            return await prisma.user.create({
-              data: {
-                email: "admin@lahbabiguide.com",
-                name: "Administrator",
-                role: "admin",
-              },
-            });
-          }
-          return user;
+        const adminUser = process.env.ADMIN_USERNAME;
+        const adminPass = process.env.ADMIN_PASSWORD;
+
+        // Refuse to authenticate if the admin credentials are not configured —
+        // this must never fall back to a default.
+        if (!adminUser || !adminPass) return null;
+
+        if (
+          credentials?.username === adminUser &&
+          credentials?.password === adminPass
+        ) {
+          return {
+            id: "admin",
+            name: "Administrator",
+            email: "admin@lahbabiguide.com",
+            role: "admin",
+          } as { id: string; name: string; email: string; role: string };
         }
         return null;
       },
     }),
   ],
   callbacks: {
-    async session({ session, user }) {
+    async jwt({ token, user }) {
+      if (user) {
+        token.role = (user as { role?: string }).role ?? "user";
+      }
+      return token;
+    },
+    async session({ session, token }) {
       if (session.user) {
-        const dbUser = await prisma.user.findUnique({
-          where: { id: user.id },
-        });
-        session.user.id = user.id;
-        // @ts-ignore
-        session.user.role = dbUser?.role || "user";
+        session.user.id = (token.sub as string) ?? "admin";
+        // @ts-expect-error - role is a custom claim
+        session.user.role = token.role ?? "user";
       }
       return session;
     },
   },
   session: {
-    strategy: "database", // Use database sessions for persistence as requested
+    strategy: "jwt",
   },
 });

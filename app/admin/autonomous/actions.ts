@@ -3,8 +3,10 @@
 import { prisma } from "@/lib/db/prisma";
 import { processRegeneration, RegenerationType } from "@/lib/ahosti/engine";
 import { revalidatePath } from "next/cache";
+import { requireAdmin } from "@/lib/auth-guard";
 
 export async function handleRegeneration(projectId: string, type: RegenerationType, targetPath?: string) {
+  await requireAdmin();
   try {
     await processRegeneration(projectId, type, targetPath);
     revalidatePath("/admin/autonomous");
@@ -15,6 +17,7 @@ export async function handleRegeneration(projectId: string, type: RegenerationTy
 }
 
 export async function handleCreateDemo() {
+  await requireAdmin();
   const { createProjectFromWizard } = await import("@/lib/ahosti/engine");
   const p = await createProjectFromWizard("LahbabiGuide Core", "The main platform infrastructure and content engine.");
   
@@ -36,6 +39,7 @@ export async function handleCreateDemo() {
 }
 
 export async function getProjectsWithStats() {
+  await requireAdmin();
   const projects = await prisma.project.findMany({
     include: {
       files: true,

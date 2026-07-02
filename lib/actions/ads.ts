@@ -2,8 +2,10 @@
 
 import { prisma } from "@/lib/db/prisma";
 import { revalidateTag } from "next/cache";
+import { requireAdmin } from "@/lib/auth-guard";
 
 export async function updateAdPlacements(ads: any[]) {
+  await requireAdmin();
   try {
     for (const ad of ads) {
       await prisma.adPlacement.upsert({

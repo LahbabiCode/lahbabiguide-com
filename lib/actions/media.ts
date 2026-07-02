@@ -3,8 +3,10 @@
 import { storage } from '@/lib/storage';
 import { prisma } from '@/lib/db/prisma';
 import { revalidateTag } from 'next/cache';
+import { requireAdmin } from '@/lib/auth-guard';
 
 export async function uploadMedia(data: FormData) {
+  await requireAdmin();
   try {
     const file = data.get('file') as File;
     const prefix = data.get('prefix') as string || '';
@@ -39,6 +41,7 @@ export async function uploadMedia(data: FormData) {
 }
 
 export async function deleteMedia(id: string) {
+  await requireAdmin();
   try {
     const media = await prisma.mediaFile.findUnique({ where: { id } });
     if (!media) return { success: false, error: 'Not found' };
@@ -54,6 +57,7 @@ export async function deleteMedia(id: string) {
 }
 
 export async function getMediaFiles() {
+  await requireAdmin();
   return prisma.mediaFile.findMany({
     orderBy: { createdAt: 'desc' }
   });

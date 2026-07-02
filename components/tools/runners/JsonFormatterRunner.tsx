@@ -87,11 +87,7 @@ function indentToArg(mode: IndentMode): string | number {
 
 /** Byte size of a UTF-8 string, formatted human-readable. */
 function formatBytes(text: string): string {
-  const bytes =
-    typeof TextEncoder !== "undefined"
-      ? new TextEncoder().encode(text).length
-      : // eslint-disable-next-line unicorn/prefer-code-point
-        unescape(encodeURIComponent(text)).length;
+  const bytes = new TextEncoder().encode(text).length;
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(2)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;

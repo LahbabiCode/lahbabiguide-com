@@ -20,23 +20,24 @@ function ToolLoading() {
 
 // Tools are pure client-side utilities — no SSR needed (they use crypto, Date,
 // clipboard, etc.). Each runner default-exports a self-contained component.
-const opts = { loading: ToolLoading, ssr: false } as const;
+// NOTE: next/dynamic requires the options to be an inline object literal in
+// every call (it is statically analyzed) — do not extract them to a variable.
 
 // Map of tool.componentKey -> interactive component.
 const REGISTRY: Record<string, ComponentType> = {
-  "json-formatter": dynamic(() => import("./runners/JsonFormatterRunner"), opts),
-  base64: dynamic(() => import("./runners/Base64Runner"), opts),
-  "jwt-decoder": dynamic(() => import("./runners/JwtDecoderRunner"), opts),
-  "uuid-generator": dynamic(() => import("./runners/UuidGeneratorRunner"), opts),
-  "password-generator": dynamic(() => import("./runners/PasswordGeneratorRunner"), opts),
-  "url-encoder": dynamic(() => import("./runners/UrlEncoderRunner"), opts),
-  "timestamp-converter": dynamic(() => import("./runners/TimestampConverterRunner"), opts),
-  "qr-generator": dynamic(() => import("./runners/QrGeneratorRunner"), opts),
-  "meta-tags": dynamic(() => import("./runners/MetaTagsRunner"), opts),
-  "robots-txt": dynamic(() => import("./runners/RobotsTxtRunner"), opts),
-  "css-minifier": dynamic(() => import("./runners/CssMinifierRunner"), opts),
-  "js-minifier": dynamic(() => import("./runners/JsMinifierRunner"), opts),
-  "http-status": dynamic(() => import("./runners/HttpStatusRunner"), opts),
+  "json-formatter": dynamic(() => import("./runners/JsonFormatterRunner"), { loading: ToolLoading, ssr: false }),
+  base64: dynamic(() => import("./runners/Base64Runner"), { loading: ToolLoading, ssr: false }),
+  "jwt-decoder": dynamic(() => import("./runners/JwtDecoderRunner"), { loading: ToolLoading, ssr: false }),
+  "uuid-generator": dynamic(() => import("./runners/UuidGeneratorRunner"), { loading: ToolLoading, ssr: false }),
+  "password-generator": dynamic(() => import("./runners/PasswordGeneratorRunner"), { loading: ToolLoading, ssr: false }),
+  "url-encoder": dynamic(() => import("./runners/UrlEncoderRunner"), { loading: ToolLoading, ssr: false }),
+  "timestamp-converter": dynamic(() => import("./runners/TimestampConverterRunner"), { loading: ToolLoading, ssr: false }),
+  "qr-generator": dynamic(() => import("./runners/QrGeneratorRunner"), { loading: ToolLoading, ssr: false }),
+  "meta-tags": dynamic(() => import("./runners/MetaTagsRunner"), { loading: ToolLoading, ssr: false }),
+  "robots-txt": dynamic(() => import("./runners/RobotsTxtRunner"), { loading: ToolLoading, ssr: false }),
+  "css-minifier": dynamic(() => import("./runners/CssMinifierRunner"), { loading: ToolLoading, ssr: false }),
+  "js-minifier": dynamic(() => import("./runners/JsMinifierRunner"), { loading: ToolLoading, ssr: false }),
+  "http-status": dynamic(() => import("./runners/HttpStatusRunner"), { loading: ToolLoading, ssr: false }),
 };
 
 export function ToolRunner({ componentKey }: { componentKey: string }) {
